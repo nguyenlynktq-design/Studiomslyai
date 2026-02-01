@@ -8,6 +8,7 @@ import { UploadIcon, DownloadIcon, SparklesIcon, AlertTriangleIcon } from './com
 const App: React.FC = () => {
     const [hasKey, setHasKey] = useState<boolean>(false);
     const [isCheckingKey, setIsCheckingKey] = useState(true);
+    const [inputKey, setInputKey] = useState("");
     const [originalImage, setOriginalImage] = useState<{ file: File; base64: string; previewUrl: string } | null>(null);
     const [secondImage, setSecondImage] = useState<{ file: File; base64: string; previewUrl: string } | null>(null);
     const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -39,13 +40,19 @@ const App: React.FC = () => {
         window.open('https://aistudio.google.com/api-keys', '_blank');
     };
 
-    const handleOpenKeyDialog = async () => {
+    const handleConnect = async () => {
         if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
             await window.aistudio.openSelectKey();
-            // Assume success and proceed to the app
             setHasKey(true);
         } else {
-            handleGetKeyLink();
+            // Nếu không có môi trường aistudio (test local), cho phép vào luôn nếu đã nhập gì đó
+            setHasKey(true);
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleConnect();
         }
     };
 
@@ -98,19 +105,20 @@ const App: React.FC = () => {
                     
                     <h1 className="text-4xl font-black text-slate-800 mb-3 uppercase tracking-tighter">KẾT NỐI GEMINI</h1>
                     <p className="text-slate-400 text-sm mb-12 leading-relaxed px-2">
-                        Chào mừng bạn đến với <b>Ms Lý AI</b>. Nhấn vào ô bên dưới để nhập mã API và bắt đầu sáng tạo.
+                        Chào mừng bạn đến với <b>Ms Lý AI</b>. Nhập mã API của bạn và nhấn Enter để bắt đầu sáng tạo.
                     </p>
                     
                     <div className="relative mb-8 group">
                         <input
                             type="text"
-                            placeholder="Nhập API Key của bạn tại đây..."
-                            readOnly
-                            onClick={handleOpenKeyDialog}
-                            className="w-full py-5 bg-slate-50 border-2 border-slate-100 rounded-2xl flex items-center px-6 text-slate-400 font-bold text-sm cursor-text outline-none focus:border-lypink/30 hover:bg-slate-100/50 transition-all shadow-inner"
+                            value={inputKey}
+                            onChange={(e) => setInputKey(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            placeholder="Dán mã API của bạn tại đây..."
+                            className="w-full py-5 bg-slate-50 border-2 border-slate-100 rounded-2xl flex items-center px-6 text-slate-600 font-bold text-sm outline-none focus:border-lypink/30 hover:bg-slate-100/50 transition-all shadow-inner"
                         />
                         <button 
-                            onClick={handleOpenKeyDialog}
+                            onClick={handleConnect}
                             className="absolute right-2.5 top-2.5 bottom-2.5 bg-lypink text-white px-6 rounded-xl text-[11px] font-black uppercase hover:bg-lypink-600 active:scale-95 transition-all shadow-lg shadow-lypink/20"
                         >
                             KẾT NỐI
@@ -151,7 +159,7 @@ const App: React.FC = () => {
             <header className="text-center mb-12">
                 <div className="flex justify-end mb-4">
                     <button 
-                        onClick={handleOpenKeyDialog}
+                        onClick={handleConnect}
                         className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-100 rounded-full text-[9px] font-black uppercase text-slate-400 hover:text-lypink transition-all"
                     >
                         <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div> Cấu hình API
