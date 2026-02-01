@@ -3,12 +3,15 @@ import { GoogleGenAI } from "@google/genai";
 import { GenerationOptions, GeneratedResult } from "../types";
 import { SYSTEM_INSTRUCTION } from "../constants/prompts";
 
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
 export const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = () => {
             if (typeof reader.result === 'string') {
+                // Remove data URL prefix (e.g., "data:image/jpeg;base64,")
                 const base64String = reader.result.split(',')[1];
                 resolve(base64String);
             } else {
@@ -25,12 +28,10 @@ export const generateImageWithNanoBanana = async (
     options: GenerationOptions,
     secondImage?: { base64: string; mimeType: string } | null
 ): Promise<GeneratedResult> => {
-    // Luôn tạo instance mới để đảm bảo lấy được API Key mới nhất từ window.aistudio
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
     const isCouple = !!secondImage;
     const isCustom = options.theme === 'custom';
 
+    // Construct a rich prompt based on user options
     let prompt = "";
 
     if (isCustom) {
@@ -51,8 +52,10 @@ export const generateImageWithNanoBanana = async (
     
     Subject Aesthetics:
     - The image must feature TWO people corresponding to the two input images.
-    - Posing: Natural and fashionable. Interactions should be genuine.
+    - Posing: The couple must strike a romantic, high-fashion, or natural pose based on the concept. Interactions should be genuine (holding hands, looking at each other, leaning in, hugging).
+    - Outfit: Matching or coordinated outfits as described in the concept.
     - Clothing Value: Ultra-luxury, high-end fabrics, detailed textures.
+    - Composition: Balanced composition focusing on the connection between the two subjects.
     `;
     } else {
         prompt = `Transform this image into a premium photorealistic portrait with the following style:
@@ -62,23 +65,37 @@ export const generateImageWithNanoBanana = async (
     ${options.customPrompt ? `Additional Instructions: ${options.customPrompt}` : ''}
     
     Subject Aesthetics:
-    - Maintain subject identity.
-    - Posing: Dynamic, elegant, and confident supermodel pose.
-    - Outfit: Ultra-luxury, Billionaire style. NO exposed midriff.
+    - Body: The model must have a slim, high-fashion figure with a defined waistline.
+    - Posing: The model must strike a world-class, A-list supermodel pose. The pose should be DYNAMIC, ELEGANT, FLUID, and CONFIDENT.
+    - Outfit Constraint: The outfit must be modest around the waist; absolutely NO exposed navel or midriff.
+    - Clothing Value: The outfit must scream "ULTRA-LUXURY" and "BILLIONAIRE STYLE".
     `;
     }
 
     prompt += `
     Style Details:
-    - Lighting: Cinematic, professional studio lighting.
-    - Camera: High-end DSLR, 85mm lens, sharp focus on eyes.
-    - Quality: 8k resolution, highly detailed, HDR.
+    - Lighting: Cinematic, soft, professional studio lighting or atmospheric natural light matching the concept.
+    - Camera: High-end DSLR, 85mm lens, f/1.8 aperture, sharp focus on eyes, bokeh background.
+    - Quality: 8k resolution, highly detailed, HDR, masterpiece.
     `;
 
     if (options.faceConsistency) {
-        prompt += `
-    CRITICAL INSTRUCTION: Maintain the exact facial features and identity of the subject from the source image.`;
+        if (isCouple) {
+            prompt += `
+    CRITICAL INSTRUCTION: Maintain the facial features and identity of BOTH subjects from the input images. The first person in the output should resemble the first input image, and the second person should resemble the second input image.`;
+        } else {
+            prompt += `
+    CRITICAL INSTRUCTION: Maintain the facial features, identity, and expression of the person in the source image. The output person MUST look exactly like the input person, but wearing the clothes and in the environment described in the concept.`;
+        }
     }
+
+    if (options.quality === 'Ultra') {
+        prompt += `
+    - Texture: Ultra-realistic skin texture, fabric details, and environmental depth.`;
+    }
+
+    prompt += `
+    Ensure the image is not a cartoon, not a drawing, but a real photograph.`;
 
     try {
         const parts: any[] = [
@@ -106,13 +123,17 @@ export const generateImageWithNanoBanana = async (
             contents: { parts },
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
+                // gemini-2.5-flash-image supports aspectRatio in config as per latest docs for image generation
                 imageConfig: {
                     aspectRatio: options.aspectRatio
                 }
             }
         });
 
+        // Parse response to find the image
+        // The API might return text (if it refused to generate) or image data
         let generatedImageBase64 = null;
+        
         if (response.candidates && response.candidates.length > 0) {
             const content = response.candidates[0].content;
             if (content.parts) {
@@ -126,9 +147,12 @@ export const generateImageWithNanoBanana = async (
         }
 
         if (!generatedImageBase64) {
+             // Fallback: Check if there is text explaining why it failed
              const textPart = response.text;
-             if (textPart) throw new Error(`AI Refusal: ${textPart}`);
-             throw new Error("No image generated.");
+             if (textPart) {
+                 throw new Error(`AI Refusal: ${textPart}`);
+             }
+             throw new Error("No image generated by the model.");
         }
 
         return {
