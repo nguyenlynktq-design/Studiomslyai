@@ -42,7 +42,7 @@ const App: React.FC = () => {
     const handleOpenKeyDialog = async () => {
         if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
             await window.aistudio.openSelectKey();
-            // Proceed assuming success to avoid race conditions as per guidelines
+            // Assume success and proceed to the app
             setHasKey(true);
         } else {
             handleGetKeyLink();
@@ -84,49 +84,45 @@ const App: React.FC = () => {
         }
     };
 
-    if (isCheckingKey) return <div className="min-h-screen bg-slate-50 flex items-center justify-center font-black text-lypink animate-pulse">ĐANG KHỞI TẠO...</div>;
+    if (isCheckingKey) return <div className="min-h-screen bg-slate-50 flex items-center justify-center font-black text-lypink animate-pulse uppercase tracking-[0.2em]">Đang khởi tạo studio...</div>;
 
     if (!hasKey) {
         return (
             <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-center">
-                <div className="max-w-md w-full bg-white p-10 rounded-[3rem] shadow-2xl border border-lypink/10">
-                    <div className="w-20 h-20 bg-lypink/5 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <SparklesIcon className="w-10 h-10 text-lypink animate-bounce" />
+                <div className="max-w-md w-full bg-white p-12 rounded-[3.5rem] shadow-[0_20px_50px_rgba(242,5,116,0.1)] border border-lypink/5 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-lypink to-fuchsia-500"></div>
+                    
+                    <div className="w-20 h-20 bg-lypink/5 rounded-3xl flex items-center justify-center mx-auto mb-8 rotate-3">
+                        <SparklesIcon className="w-10 h-10 text-lypink animate-pulse" />
                     </div>
-                    <h1 className="text-3xl font-black text-slate-800 mb-2 uppercase tracking-tighter">KẾT NỐI GEMINI</h1>
-                    <p className="text-slate-500 text-sm mb-8 leading-relaxed px-4">
-                        Chào mừng bạn đến với <b>Ms Lý AI</b>. Để bắt đầu sáng tạo, bạn cần lấy mã API miễn phí hoặc nhập mã đã có.
+                    
+                    <h1 className="text-4xl font-black text-slate-800 mb-3 uppercase tracking-tighter">KẾT NỐI GEMINI</h1>
+                    <p className="text-slate-400 text-sm mb-12 leading-relaxed px-2">
+                        Chào mừng bạn đến với <b>Ms Lý AI</b>. Nhấn vào ô bên dưới để nhập mã API và bắt đầu sáng tạo.
                     </p>
                     
-                    <button 
-                        onClick={handleGetKeyLink}
-                        className="w-full py-4 bg-gradient-to-r from-lypink to-fuchsia-600 text-white font-black rounded-2xl shadow-lg hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-widest text-sm mb-6"
-                    >
-                        LẤY API KEY MIỄN PHÍ
-                    </button>
-
-                    <div className="flex flex-col gap-4">
+                    <div className="relative mb-8 group">
+                        <input
+                            type="text"
+                            placeholder="Nhập API Key của bạn tại đây..."
+                            readOnly
+                            onClick={handleOpenKeyDialog}
+                            className="w-full py-5 bg-slate-50 border-2 border-slate-100 rounded-2xl flex items-center px-6 text-slate-400 font-bold text-sm cursor-text outline-none focus:border-lypink/30 hover:bg-slate-100/50 transition-all shadow-inner"
+                        />
                         <button 
                             onClick={handleOpenKeyDialog}
-                            className="text-slate-500 hover:text-lypink transition-all text-xs font-bold uppercase tracking-tight"
+                            className="absolute right-2.5 top-2.5 bottom-2.5 bg-lypink text-white px-6 rounded-xl text-[11px] font-black uppercase hover:bg-lypink-600 active:scale-95 transition-all shadow-lg shadow-lypink/20"
                         >
-                            Tôi đã có mã, nhấn để dán/nhập API
+                            KẾT NỐI
                         </button>
                     </div>
 
-                    <div className="mt-10 pt-6 border-t border-slate-50 flex flex-col gap-4">
-                        <p className="text-[10px] text-red-500 font-black animate-pulse uppercase flex items-center justify-center gap-1">
-                            <AlertTriangleIcon className="w-3.5 h-3.5"/> YÊU CẦU BẮT BUỘC ĐỂ CHẠY ỨNG DỤNG
-                        </p>
-                        <a 
-                            href="https://ai.google.dev/gemini-api/docs/billing" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-[10px] text-slate-400 hover:text-lypink underline transition-colors uppercase tracking-widest font-black"
-                        >
-                            Hướng dẫn đăng ký & thanh toán (Google Billing)
-                        </a>
-                    </div>
+                    <button 
+                        onClick={handleGetKeyLink}
+                        className="text-slate-300 hover:text-lypink transition-all text-[10px] font-black uppercase tracking-widest border-b border-transparent hover:border-lypink/30 pb-1"
+                    >
+                        Chưa có mã? Lấy API miễn phí tại đây
+                    </button>
                 </div>
             </div>
         );
